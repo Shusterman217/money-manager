@@ -224,6 +224,33 @@
   .panel.income .add-btn:hover { border-color: var(--green); color: var(--green); background: var(--green-soft); }
   .panel.expense .add-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-soft); }
 
+  .cat {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid #eef0f2;
+    padding-top: 10px;
+  }
+  .cat:first-child { border-top: none; padding-top: 0; }
+  .cat-head { display: flex; align-items: center; gap: 8px; }
+  .cat-head .cat-name {
+    flex: 1;
+    min-width: 50px;
+    font-size: .85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 2px;
+    border-bottom: 1px dashed transparent;
+  }
+  .cat-head .cat-name:focus { border-bottom-color: #9ca3af; }
+  .cat-sub { font-size: .78rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+  .add-btn.small { margin-top: 0; padding: 6px; font-size: .85rem; border-width: 1px; }
+
   .summary {
     margin-top: 24px;
     background: var(--card);
@@ -278,7 +305,7 @@
         <div class="panel-total" id="expense-total"></div>
       </div>
       <div id="expense-list"></div>
-      <button class="add-btn" onclick="addBar('expense')">+ Add expense</button>
+      <button class="add-btn" onclick="addCategory()">+ Add category</button>
     </section>
   </div>
 
@@ -311,16 +338,38 @@ let state = {
     { name: 'Work salary', amount: 0 },
     { name: 'Passive income', amount: 0 },
   ],
-  expense: [
-    { name: 'Rent', amount: 0 },
-    { name: 'Food', amount: 0 },
+  expenseCats: [
+    { name: 'Housing', bars: [{ name: 'Rent', amount: 0 }] },
+    { name: 'Food', bars: [{ name: 'Groceries', amount: 0 }] },
+    { name: 'Transport', bars: [] },
+    { name: 'Fun', bars: [] },
   ],
 };
 
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) state = JSON.parse(raw);
+    if (!raw) return;
+    const loaded = JSON.parse(raw);
+    if (loaded.expense && !loaded.expenseCats) {
+      // migrate the old flat expense list into categories
+      const catFor = { rent: 'Housing', food: 'Food' };
+      loaded.expenseCats = [
+        { name: 'Housing', bars: [] },
+        { name: 'Food', bars: [] },
+        { name: 'Transport', bars: [] },
+        { name: 'Fun', bars: [] },
+      ];
+      const other = { name: 'Other', bars: [] };
+      for (const bar of loaded.expense) {
+        const target = catFor[(bar.name || '').trim().toLowerCase()];
+        const cat = loaded.expenseCats.find(c => c.name === target);
+        (cat ? cat.bars : other.bars).push(bar);
+      }
+      if (other.bars.length) loaded.expenseCats.push(other);
+      delete loaded.expense;
+    }
+    state = loaded;
   } catch (e) { /* corrupted or blocked storage — keep defaults */ }
 }
 
@@ -337,7 +386,7 @@ function total(list) {
   return list.reduce((s, b) => s + (Number(b.amount) || 0), 0);
 }
 
-function renderBar(kind, bar, i) {
+function renderBar(kind, list, bar) {
   const div = document.createElement('div');
   div.className = 'bar';
 
@@ -397,7 +446,7 @@ function renderBar(kind, bar, i) {
   del.textContent = '✕';
   del.title = 'Remove this bar';
   del.onclick = () => {
-    state[kind].splice(i, 1);
+    list.splice(list.indexOf(bar), 1);
     save();
     render();
   };
@@ -407,18 +456,66 @@ function renderBar(kind, bar, i) {
 }
 
 function render() {
-  for (const kind of ['income', 'expense']) {
-    const listEl = document.getElementById(kind + '-list');
-    listEl.innerHTML = '';
-    state[kind].forEach((bar, i) => listEl.appendChild(renderBar(kind, bar, i)));
-  }
+  const incEl = document.getElementById('income-list');
+  incEl.innerHTML = '';
+  state.income.forEach(bar => incEl.appendChild(renderBar('income', state.income, bar)));
+
+  const expEl = document.getElementById('expense-list');
+  expEl.innerHTML = '';
+  state.expenseCats.forEach(cat => expEl.appendChild(renderCategory(cat)));
+
   document.getElementById('currency').value = state.currency;
   updateTotals();
 }
 
+function renderCategory(cat) {
+  const div = document.createElement('div');
+  div.className = 'cat';
+
+  const head = document.createElement('div');
+  head.className = 'cat-head';
+
+  const name = document.createElement('input');
+  name.className = 'cat-name';
+  name.value = cat.name;
+  name.placeholder = 'Category name...';
+  name.oninput = () => { cat.name = name.value; save(); };
+
+  const sub = document.createElement('span');
+  sub.className = 'cat-sub';
+
+  const del = document.createElement('button');
+  del.className = 'delete-btn';
+  del.textContent = '✕';
+  del.title = 'Delete this category';
+  del.onclick = () => {
+    if (cat.bars.length && !confirm('Delete "' + cat.name + '" and the ' + cat.bars.length + ' expense bar(s) inside it?')) return;
+    state.expenseCats.splice(state.expenseCats.indexOf(cat), 1);
+    save();
+    render();
+  };
+
+  head.append(name, sub, del);
+  div.appendChild(head);
+
+  cat.bars.forEach(bar => div.appendChild(renderBar('expense', cat.bars, bar)));
+
+  const add = document.createElement('button');
+  add.className = 'add-btn small';
+  add.textContent = '+ Add expense';
+  add.onclick = () => {
+    cat.bars.push({ name: '', amount: 0 });
+    save();
+    render();
+  };
+  div.appendChild(add);
+
+  return div;
+}
+
 function updateTotals() {
   const inc = total(state.income);
-  const exp = total(state.expense);
+  const exp = state.expenseCats.reduce((s, c) => s + total(c.bars), 0);
   const left = inc - exp;
   document.getElementById('income-total').textContent = fmt(inc);
   document.getElementById('expense-total').textContent = fmt(exp);
@@ -431,22 +528,41 @@ function updateTotals() {
   const leftPctEl = document.getElementById('sum-left-pct');
   leftPctEl.textContent = inc > 0 ? Math.round(left / inc * 100) + '% of your income' : '';
 
-  for (const kind of ['income', 'expense']) {
-    const t = total(state[kind]);
-    const badges = document.querySelectorAll('#' + kind + '-list .pct');
-    state[kind].forEach((bar, i) => {
-      if (!badges[i]) return;
-      badges[i].textContent = t > 0 ? Math.round((Number(bar.amount) || 0) / t * 100) + '%' : '–';
-    });
-  }
+  const incBadges = document.querySelectorAll('#income-list .pct');
+  state.income.forEach((bar, i) => {
+    if (!incBadges[i]) return;
+    incBadges[i].textContent = inc > 0 ? Math.round((Number(bar.amount) || 0) / inc * 100) + '%' : '–';
+  });
+
+  const expBars = state.expenseCats.flatMap(c => c.bars);
+  const expBadges = document.querySelectorAll('#expense-list .pct');
+  expBars.forEach((bar, i) => {
+    if (!expBadges[i]) return;
+    expBadges[i].textContent = exp > 0 ? Math.round((Number(bar.amount) || 0) / exp * 100) + '%' : '–';
+  });
+
+  const subs = document.querySelectorAll('#expense-list .cat-sub');
+  state.expenseCats.forEach((cat, i) => {
+    if (!subs[i]) return;
+    const t = total(cat.bars);
+    subs[i].textContent = fmt(t) + (inc > 0 ? ' · ' + Math.round(t / inc * 100) + '% of income' : '');
+  });
 }
 
-function addBar(kind) {
-  state[kind].push({ name: '', amount: 0 });
+function addBar() {
+  state.income.push({ name: '', amount: 0 });
   save();
   render();
-  const bars = document.querySelectorAll('#' + kind + '-list .name');
+  const bars = document.querySelectorAll('#income-list .name');
   if (bars.length) bars[bars.length - 1].focus();
+}
+
+function addCategory() {
+  state.expenseCats.push({ name: '', bars: [] });
+  save();
+  render();
+  const names = document.querySelectorAll('#expense-list .cat-name');
+  if (names.length) names[names.length - 1].focus();
 }
 
 document.getElementById('currency').onchange = (e) => {
