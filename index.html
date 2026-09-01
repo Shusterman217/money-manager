@@ -6,7 +6,7 @@
 <title>Money Manager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Rubik+Glitch&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #f6f7f9;
@@ -45,28 +45,31 @@
     box-shadow: var(--shadow);
   }
   header h1 {
-    font-family: "Rajdhani", "Segoe UI", sans-serif;
+    font-family: "Cinzel Decorative", "Georgia", serif;
     display: inline-flex;
     flex-direction: column;
     align-items: flex-end;
-    line-height: .85;
+    line-height: .95;
     text-transform: uppercase;
-    transform: skewX(-6deg);
+  }
+  header h1 .money,
+  header h1 .manager {
+    background: linear-gradient(175deg, #e8d49a 0%, #c9a961 40%, #8a6d3b 75%, #b3924f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .8));
   }
   header h1 .money {
-    font-size: 2.6rem;
-    font-weight: 700;
-    letter-spacing: .1em;
-    color: #fcee0a;
-    text-shadow: 2px 2px 0 #00e5ff, 0 0 16px rgba(0, 229, 255, .45);
+    font-size: 2.7rem;
+    font-weight: 900;
+    letter-spacing: .04em;
   }
   header h1 .manager {
-    font-size: 1.15rem;
-    font-weight: 600;
-    letter-spacing: .34em;
-    margin-right: -.34em; /* cancel trailing letter-spacing so the last letter lines up with the edge */
-    color: #00e5ff;
-    text-shadow: 0 0 10px rgba(0, 229, 255, .6);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: .28em;
+    margin-right: -.28em; /* cancel trailing letter-spacing so the last letter lines up with the edge */
   }
   .currency-picker {
     display: flex;
