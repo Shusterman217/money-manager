@@ -6,7 +6,7 @@
 <title>Money Manager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Rubik+Glitch&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #f6f7f9;
@@ -39,25 +39,32 @@
     flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 24px;
+    background: linear-gradient(120deg, #170225 0%, #2b0a3d 55%, #12041f 100%);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    box-shadow: var(--shadow);
   }
   header h1 {
-    font-family: "Rajdhani", "Segoe UI", sans-serif;
-    font-size: 2rem;
-    font-weight: 700;
+    font-family: "Rubik Glitch", "Rajdhani", sans-serif;
+    font-size: 2.2rem;
+    font-weight: 400;
     text-transform: uppercase;
-    letter-spacing: .06em;
+    letter-spacing: .02em;
     line-height: 1;
-    color: #111;
-    background: #fcee0a;
-    padding: 8px 18px 6px;
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+    color: #fcee0a;
+    transform: skewX(-6deg);
+    text-shadow:
+      2px 2px 0 #00e5ff,
+      -1px -1px 0 #00e5ff,
+      0 0 18px rgba(0, 229, 255, .55),
+      0 0 30px rgba(252, 238, 10, .35);
   }
   .currency-picker {
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: .9rem;
-    color: var(--muted);
+    color: #c9b6e4;
   }
   .currency-picker select {
     font-size: 1rem;
