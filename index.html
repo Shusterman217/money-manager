@@ -153,6 +153,8 @@
     gap: 4px;
   }
   .amount-wrap .symbol { font-weight: 600; color: var(--muted); }
+  .panel.income .amount-wrap .symbol { color: var(--green); }
+  .panel.expense .amount-wrap .symbol { color: var(--red); }
   .bar .amount {
     width: 100px;
     font-size: 1rem;
@@ -334,6 +336,10 @@ function renderBar(kind, bar, i) {
   const wrap = document.createElement('div');
   wrap.className = 'amount-wrap';
 
+  const sym = document.createElement('span');
+  sym.className = 'symbol';
+  sym.textContent = (kind === 'expense' ? '−' : '') + state.currency;
+
   const amount = document.createElement('input');
   amount.className = 'amount';
   amount.type = 'number';
@@ -366,7 +372,7 @@ function renderBar(kind, bar, i) {
     updateTotals();
   };
   steppers.append(up, down);
-  wrap.append(amount, steppers);
+  wrap.append(sym, amount, steppers);
 
   const del = document.createElement('button');
   del.className = 'delete-btn';
@@ -416,7 +422,7 @@ function addBar(kind) {
 document.getElementById('currency').onchange = (e) => {
   state.currency = e.target.value;
   save();
-  updateTotals();
+  render();
 };
 
 load();
