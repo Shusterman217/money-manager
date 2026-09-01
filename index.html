@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Money Manager</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --green: #16a34a;
+    --green-soft: #e8f7ee;
+    --green-border: #b7e4c7;
+    --red: #dc2626;
+    --red-soft: #fdecec;
+    --red-border: #f5c2c2;
+    --radius: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 14px rgba(0,0,0,.04);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+  .container { max-width: 1000px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  header h1 { font-size: 1.5rem; font-weight: 700; }
+  .currency-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .9rem;
+    color: var(--muted);
+  }
+  .currency-picker select {
+    font-size: 1rem;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background: var(--card);
+    cursor: pointer;
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 700px) {
+    .columns { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .panel-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid transparent;
+  }
+  .panel.income .panel-head { border-color: var(--green-border); }
+  .panel.expense .panel-head { border-color: var(--red-border); }
+  .panel-head h2 { font-size: 1.1rem; }
+  .panel.income h2 { color: var(--green); }
+  .panel.expense h2 { color: var(--red); }
+  .panel-total { font-size: 1.15rem; font-weight: 700; white-space: nowrap; }
+  .panel.income .panel-total { color: var(--green); }
+  .panel.expense .panel-total { color: var(--red); }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 10px;
+    padding: 10px 12px;
+    border: 1px solid;
+  }
+  .panel.income .bar { background: var(--green-soft); border-color: var(--green-border); }
+  .panel.expense .bar { background: var(--red-soft); border-color: var(--red-border); }
+
+  .bar .name {
+    flex: 1;
+    min-width: 60px;
+    font-size: .95rem;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    padding: 4px 2px;
+    border-bottom: 1px dashed transparent;
+  }
+  .bar .name:focus { border-bottom-color: #9ca3af; }
+
+  .amount-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .amount-wrap .symbol { font-weight: 600; color: var(--muted); }
+  .bar .amount {
+    width: 100px;
+    font-size: 1rem;
+    font-weight: 700;
+    text-align: right;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: var(--text);
+    outline: none;
+  }
+  .bar .amount:focus { border-color: #6b7280; }
+  /* hide native number spinners; we have our own arrows */
+  .bar .amount::-webkit-outer-spin-button,
+  .bar .amount::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .bar .amount { -moz-appearance: textfield; appearance: textfield; }
+
+  .steppers { display: flex; flex-direction: column; gap: 2px; }
+  .steppers button {
+    width: 26px; height: 18px;
+    font-size: .65rem;
+    line-height: 1;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .steppers button:hover { background: #f3f4f6; color: var(--text); }
+
+  .delete-btn {
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    line-height: 1;
+  }
+  .delete-btn:hover { color: var(--red); background: rgba(0,0,0,.05); }
+
+  .add-btn {
+    margin-top: 4px;
+    padding: 10px;
+    font-size: .95rem;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 2px dashed #d1d5db;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .panel.income .add-btn:hover { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+  .panel.expense .add-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+
+  .summary {
+    margin-top: 24px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 1.05rem;
+  }
+  .summary .piece { text-align: center; }
+  .summary .label { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .summary .value { font-size: 1.4rem; font-weight: 700; }
+  .summary .value.green { color: var(--green); }
+  .summary .value.red { color: var(--red); }
+  .summary .op { font-size: 1.6rem; color: var(--muted); font-weight: 300; }
+  .summary .result .value { font-size: 1.9rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>💰 My Money Manager</h1>
+    <label class="currency-picker">
+      Currency
+      <select id="currency">
+        <option value="₪">₪ Shekel</option>
+        <option value="$">$ Dollar</option>
+        <option value="€">€ Euro</option>
+        <option value="">None</option>
+      </select>
+    </label>
+  </header>
+
+  <div class="columns">
+    <section class="panel income">
+      <div class="panel-head">
+        <h2>Income</h2>
+        <div class="panel-total" id="income-total"></div>
+      </div>
+      <div id="income-list"></div>
+      <button class="add-btn" onclick="addBar('income')">+ Add income</button>
+    </section>
+
+    <section class="panel expense">
+      <div class="panel-head">
+        <h2>Expenses</h2>
+        <div class="panel-total" id="expense-total"></div>
+      </div>
+      <div id="expense-list"></div>
+      <button class="add-btn" onclick="addBar('expense')">+ Add expense</button>
+    </section>
+  </div>
+
+  <div class="summary">
+    <div class="piece">
+      <div class="label">Income</div>
+      <div class="value green" id="sum-income"></div>
+    </div>
+    <div class="op">−</div>
+    <div class="piece">
+      <div class="label">Expenses</div>
+      <div class="value red" id="sum-expense"></div>
+    </div>
+    <div class="op">=</div>
+    <div class="piece result">
+      <div class="label">Left over</div>
+      <div class="value" id="sum-left"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'money-manager-v1';
+const STEP = 100;
+
+let state = {
+  currency: '₪',
+  income: [
+    { name: 'Work salary', amount: 0 },
+    { name: 'Passive income', amount: 0 },
+  ],
+  expense: [
+    { name: 'Rent', amount: 0 },
+    { name: 'Food', amount: 0 },
+  ],
+};
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state = JSON.parse(raw);
+  } catch (e) { /* corrupted or blocked storage — keep defaults */ }
+}
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+function fmt(n) {
+  const num = n.toLocaleString('en-US');
+  return state.currency ? state.currency + num : num;
+}
+
+function total(list) {
+  return list.reduce((s, b) => s + (Number(b.amount) || 0), 0);
+}
+
+function renderBar(kind, bar, i) {
+  const div = document.createElement('div');
+  div.className = 'bar';
+
+  const name = document.createElement('input');
+  name.className = 'name';
+  name.value = bar.name;
+  name.placeholder = kind === 'income' ? 'Income name...' : 'Expense name...';
+  name.oninput = () => { bar.name = name.value; save(); };
+
+  const wrap = document.createElement('div');
+  wrap.className = 'amount-wrap';
+
+  const amount = document.createElement('input');
+  amount.className = 'amount';
+  amount.type = 'number';
+  amount.min = '0';
+  amount.value = bar.amount;
+  amount.oninput = () => {
+    bar.amount = Math.max(0, Number(amount.value) || 0);
+    save();
+    updateTotals();
+  };
+
+  const steppers = document.createElement('div');
+  steppers.className = 'steppers';
+  const up = document.createElement('button');
+  up.textContent = '▲';
+  up.title = 'Increase by ' + STEP;
+  up.onclick = () => {
+    bar.amount = (Number(bar.amount) || 0) + STEP;
+    amount.value = bar.amount;
+    save();
+    updateTotals();
+  };
+  const down = document.createElement('button');
+  down.textContent = '▼';
+  down.title = 'Decrease by ' + STEP;
+  down.onclick = () => {
+    bar.amount = Math.max(0, (Number(bar.amount) || 0) - STEP);
+    amount.value = bar.amount;
+    save();
+    updateTotals();
+  };
+  steppers.append(up, down);
+  wrap.append(amount, steppers);
+
+  const del = document.createElement('button');
+  del.className = 'delete-btn';
+  del.textContent = '✕';
+  del.title = 'Remove this bar';
+  del.onclick = () => {
+    state[kind].splice(i, 1);
+    save();
+    render();
+  };
+
+  div.append(name, wrap, del);
+  return div;
+}
+
+function render() {
+  for (const kind of ['income', 'expense']) {
+    const listEl = document.getElementById(kind + '-list');
+    listEl.innerHTML = '';
+    state[kind].forEach((bar, i) => listEl.appendChild(renderBar(kind, bar, i)));
+  }
+  document.getElementById('currency').value = state.currency;
+  updateTotals();
+}
+
+function updateTotals() {
+  const inc = total(state.income);
+  const exp = total(state.expense);
+  const left = inc - exp;
+  document.getElementById('income-total').textContent = fmt(inc);
+  document.getElementById('expense-total').textContent = fmt(exp);
+  document.getElementById('sum-income').textContent = fmt(inc);
+  document.getElementById('sum-expense').textContent = fmt(exp);
+  const leftEl = document.getElementById('sum-left');
+  leftEl.textContent = fmt(left);
+  leftEl.className = 'value ' + (left >= 0 ? 'green' : 'red');
+}
+
+function addBar(kind) {
+  state[kind].push({ name: '', amount: 0 });
+  save();
+  render();
+  const bars = document.querySelectorAll('#' + kind + '-list .name');
+  if (bars.length) bars[bars.length - 1].focus();
+}
+
+document.getElementById('currency').onchange = (e) => {
+  state.currency = e.target.value;
+  save();
+  updateTotals();
+};
+
+load();
+render();
+</script>
+</body>
+</html>
