@@ -152,6 +152,18 @@
     align-items: center;
     gap: 4px;
   }
+  .bar .pct {
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--muted);
+    background: rgba(255,255,255,.7);
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 2px 8px;
+    min-width: 42px;
+    text-align: center;
+    white-space: nowrap;
+  }
   .amount-wrap .symbol { font-weight: 600; color: var(--muted); }
   .panel.income .amount-wrap .symbol { color: var(--green); }
   .panel.expense .amount-wrap .symbol { color: var(--red); }
@@ -232,6 +244,7 @@
   .summary .value.red { color: var(--red); }
   .summary .op { font-size: 1.6rem; color: var(--muted); font-weight: 300; }
   .summary .result .value { font-size: 1.9rem; }
+  .summary .sub { font-size: .78rem; color: var(--muted); margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -283,6 +296,7 @@
     <div class="piece result">
       <div class="label">Left over</div>
       <div class="value" id="sum-left"></div>
+      <div class="sub" id="sum-left-pct"></div>
     </div>
   </div>
 </div>
@@ -374,6 +388,10 @@ function renderBar(kind, bar, i) {
   steppers.append(up, down);
   wrap.append(sym, amount, steppers);
 
+  const pct = document.createElement('span');
+  pct.className = 'pct';
+  pct.title = kind === 'income' ? 'Share of total income' : 'Share of total expenses';
+
   const del = document.createElement('button');
   del.className = 'delete-btn';
   del.textContent = '✕';
@@ -384,7 +402,7 @@ function renderBar(kind, bar, i) {
     render();
   };
 
-  div.append(name, wrap, del);
+  div.append(name, pct, wrap, del);
   return div;
 }
 
@@ -409,6 +427,18 @@ function updateTotals() {
   const leftEl = document.getElementById('sum-left');
   leftEl.textContent = fmt(left);
   leftEl.className = 'value ' + (left >= 0 ? 'green' : 'red');
+
+  const leftPctEl = document.getElementById('sum-left-pct');
+  leftPctEl.textContent = inc > 0 ? Math.round(left / inc * 100) + '% of your income' : '';
+
+  for (const kind of ['income', 'expense']) {
+    const t = total(state[kind]);
+    const badges = document.querySelectorAll('#' + kind + '-list .pct');
+    state[kind].forEach((bar, i) => {
+      if (!badges[i]) return;
+      badges[i].textContent = t > 0 ? Math.round((Number(bar.amount) || 0) / t * 100) + '%' : '–';
+    });
+  }
 }
 
 function addBar(kind) {
