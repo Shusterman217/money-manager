@@ -251,6 +251,20 @@
   .cat-sub { font-size: .78rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
   .add-btn.small { margin-top: 0; padding: 6px; font-size: .85rem; border-width: 1px; }
 
+  .charts { margin-top: 20px; }
+  .chart-title { font-size: 1rem; margin-bottom: 12px; }
+  .chart-title.income-t { color: var(--green); }
+  .chart-title.expense-t { color: var(--red); }
+  .chart { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .chart svg { width: 150px; height: 150px; flex-shrink: 0; }
+  .chart .empty { color: var(--muted); font-size: .85rem; }
+  .chart .legend { flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 7px; }
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
+  .legend-row .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .legend-row .lname { flex: 1; min-width: 0; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend-row .lpct { font-weight: 700; }
+  .legend-row .lamt { color: var(--muted); font-size: .8rem; min-width: 54px; text-align: right; }
+
   .summary {
     margin-top: 24px;
     background: var(--card);
@@ -306,6 +320,17 @@
       </div>
       <div id="expense-list"></div>
       <button class="add-btn" onclick="addCategory()">+ Add category</button>
+    </section>
+  </div>
+
+  <div class="columns charts">
+    <section class="panel">
+      <h3 class="chart-title income-t">Income breakdown</h3>
+      <div class="chart" id="income-chart"></div>
+    </section>
+    <section class="panel">
+      <h3 class="chart-title expense-t">Expenses breakdown</h3>
+      <div class="chart" id="expense-chart"></div>
     </section>
   </div>
 
@@ -547,6 +572,108 @@ function updateTotals() {
     const t = total(cat.bars);
     subs[i].textContent = fmt(t) + (inc > 0 ? ' · ' + Math.round(t / inc * 100) + '% of income' : '');
   });
+
+  renderCharts();
+}
+
+// donut palettes: single-hue ordinal ramps, dark→light, CVD-validated on white
+const GREENS = ['#0b3d20', '#155c30', '#217e44', '#31a15a', '#47ba70'];
+const REDS = ['#7f1d1d', '#b32424', '#d94b3c', '#ef7a64', '#f79a80'];
+const OTHER_GRAY = '#898781';
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function renderChart(elId, items, colors) {
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  let data = items
+    .filter(b => (Number(b.amount) || 0) > 0)
+    .map(b => ({ name: b.name || 'Unnamed', amount: Number(b.amount) || 0 }))
+    .sort((a, b) => b.amount - a.amount);
+  const totalAmt = data.reduce((s, d) => s + d.amount, 0);
+  if (!totalAmt) {
+    el.innerHTML = '<div class="empty">Nothing here yet — add some amounts above.</div>';
+    return;
+  }
+  if (data.length > colors.length) {
+    const head = data.slice(0, colors.length - 1);
+    const restAmt = data.slice(colors.length - 1).reduce((s, d) => s + d.amount, 0);
+    data = [...head, { name: 'Other', amount: restAmt, other: true }];
+  }
+
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 120 120');
+  const cx = 60, cy = 60, r = 56;
+  let angle = -Math.PI / 2;
+  data.forEach((d, i) => {
+    const frac = d.amount / totalAmt;
+    const a2 = angle + frac * 2 * Math.PI;
+    let slice;
+    if (frac > 0.9999) {
+      slice = document.createElementNS(SVG_NS, 'circle');
+      slice.setAttribute('cx', cx);
+      slice.setAttribute('cy', cy);
+      slice.setAttribute('r', r);
+    } else {
+      const x1 = cx + r * Math.cos(angle), y1 = cy + r * Math.sin(angle);
+      const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+      slice = document.createElementNS(SVG_NS, 'path');
+      slice.setAttribute('d', 'M ' + cx + ' ' + cy + ' L ' + x1 + ' ' + y1 +
+        ' A ' + r + ' ' + r + ' 0 ' + (frac > 0.5 ? 1 : 0) + ' 1 ' + x2 + ' ' + y2 + ' Z');
+    }
+    slice.setAttribute('fill', d.other ? OTHER_GRAY : colors[i]);
+    slice.setAttribute('stroke', '#ffffff');
+    slice.setAttribute('stroke-width', '2');
+    const tip = document.createElementNS(SVG_NS, 'title');
+    tip.textContent = d.name + ': ' + fmt(d.amount) + ' (' + Math.round(frac * 100) + '%)';
+    slice.appendChild(tip);
+    svg.appendChild(slice);
+    angle = a2;
+  });
+
+  const hole = document.createElementNS(SVG_NS, 'circle');
+  hole.setAttribute('cx', cx);
+  hole.setAttribute('cy', cy);
+  hole.setAttribute('r', 32);
+  hole.setAttribute('fill', '#ffffff');
+  svg.appendChild(hole);
+
+  const label = document.createElementNS(SVG_NS, 'text');
+  label.setAttribute('x', cx);
+  label.setAttribute('y', cy + 4);
+  label.setAttribute('text-anchor', 'middle');
+  label.setAttribute('font-size', '12');
+  label.setAttribute('font-weight', '700');
+  label.setAttribute('fill', '#1f2937');
+  label.textContent = fmt(totalAmt);
+  svg.appendChild(label);
+  el.appendChild(svg);
+
+  const legend = document.createElement('div');
+  legend.className = 'legend';
+  data.forEach((d, i) => {
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    dot.style.background = d.other ? OTHER_GRAY : colors[i];
+    const nm = document.createElement('span');
+    nm.className = 'lname';
+    nm.textContent = d.name;
+    const pc = document.createElement('span');
+    pc.className = 'lpct';
+    pc.textContent = Math.round(d.amount / totalAmt * 100) + '%';
+    const am = document.createElement('span');
+    am.className = 'lamt';
+    am.textContent = fmt(d.amount);
+    row.append(dot, nm, pc, am);
+    legend.appendChild(row);
+  });
+  el.appendChild(legend);
+}
+
+function renderCharts() {
+  renderChart('income-chart', state.income, GREENS);
+  renderChart('expense-chart', state.expenseCats.flatMap(c => c.bars), REDS);
 }
 
 function addBar() {
