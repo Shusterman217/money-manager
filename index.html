@@ -39,25 +39,34 @@
     flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 24px;
-    background: linear-gradient(120deg, #170225 0%, #2b0a3d 55%, #12041f 100%);
+    background: #000;
     border-radius: var(--radius);
     padding: 18px 22px;
     box-shadow: var(--shadow);
   }
   header h1 {
-    font-family: "Rubik Glitch", "Rajdhani", sans-serif;
-    font-size: 2.2rem;
-    font-weight: 400;
+    font-family: "Rajdhani", "Segoe UI", sans-serif;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: .85;
     text-transform: uppercase;
-    letter-spacing: .02em;
-    line-height: 1;
-    color: #fcee0a;
     transform: skewX(-6deg);
-    text-shadow:
-      2px 2px 0 #00e5ff,
-      -1px -1px 0 #00e5ff,
-      0 0 18px rgba(0, 229, 255, .55),
-      0 0 30px rgba(252, 238, 10, .35);
+  }
+  header h1 .money {
+    font-size: 2.6rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    color: #fcee0a;
+    text-shadow: 2px 2px 0 #00e5ff, 0 0 16px rgba(0, 229, 255, .45);
+  }
+  header h1 .manager {
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: .34em;
+    margin-right: -.34em; /* cancel trailing letter-spacing so the last letter lines up with the edge */
+    color: #00e5ff;
+    text-shadow: 0 0 10px rgba(0, 229, 255, .6);
   }
   .currency-picker {
     display: flex;
@@ -223,7 +232,7 @@
 <body>
 <div class="container">
   <header>
-    <h1>Money Manager</h1>
+    <h1><span class="money">Money</span><span class="manager">Manager</span></h1>
     <label class="currency-picker">
       Currency
       <select id="currency">
